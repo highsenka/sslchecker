@@ -1,0 +1,87 @@
+services:
+  # pgbouncer:
+  #   container_name: pgbouncer
+  #   ### build from source
+  #   image: edoburu/pgbouncer:latest
+  #   volumes:
+  #     - ./logs:/var/log/pgbouncer
+  #     - ./pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini
+  #     - ./pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt
+  #   ports:
+  #     - "6432:6432"
+  #   healthcheck:
+  #     test: ['CMD', 'pg_isready', '-h', 'localhost']
+
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: "sslchecker"
+      POSTGRES_USER: "sslchecker"
+      POSTGRES_PASSWORD: "sslchecker"
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    volumes:
+      - ./init/db.sql:/docker-entrypoint-initdb.d/db.sql
+      - ./pg_data:/var/lib/postgresql/data
+    ports:
+      - "15432:5432"
+
+  pgadmin:
+      container_name: pgadmin_container
+      image: dpage/pgadmin4:9.11
+      environment:
+        PGADMIN_DEFAULT_EMAIL: "user@sslchecker.ru"
+        PGADMIN_DEFAULT_PASSWORD: "sslchecker"
+        PGADMIN_CONFIG_SERVER_MODE: "False"
+      volumes:
+        - ./pg_data/pgadmin:/var/lib/pgadmin
+      ports:
+        - "5050:80"
+      user: "5050:5050"
+      restart: unless-stopped
+      deploy:
+        resources:
+          limits:
+            cpus: '0.5'
+            memory: 1G
+        
+  api:
+    build: &sslcheker-image-build
+      dockerfile: docker/Dockerfile
+      context: .
+    working_dir: /opt/app
+    command: uvicorn --host 0.0.0.0 --port 8080 src.main:app --reload
+    restart: unless-stopped
+    volumes:
+      - ./src:/opt/app/src
+    ports:
+      - 8080:8080
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - 3000:3000
+    volumes:
+      - ./grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=your_secure_password
+  
+  celery_worker:
+    build: *sslcheker-image-build
+    working_dir: /opt/app
+    command: watchfiles --filter python 'python -m celery -A src.celery.celery_app worker -E --concurrency=8 -Q celery,celery-beat'
+    volumes:
+      - ./src:/opt/app/src
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  celery_beat:
+    build: *sslcheker-image-build
+    working_dir: /opt/app
+    command: watchfiles --filter python 'python -m celery -A src.celery.celery_app beat'
+    volumes:
+      - ./src:/opt/app/src
+    env_file:
+      - .env
+    restart: unless-stopped
