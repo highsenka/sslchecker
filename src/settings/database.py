@@ -22,7 +22,14 @@ class DatabaseSettings(BaseSettings):
         ...,
         description="Название схемы БД",
     )
-
+    host: str = Field(
+        ...,
+        description="Хост для подключения к БД",
+    )
+    port: str = Field(
+        ...,
+        description="Порт для подключения к БД",
+    )
     # https://www.postgresql.org/docs/13/runtime-config-client.html
     # ATTENTION!
     # If a query contains multiple statements then query upper time limit would be
@@ -52,6 +59,12 @@ class DatabaseSettings(BaseSettings):
         "времени (в секундах).",
     )
 
+    @property        
+    def full_url_broker(self) -> str:
+        url_broker = f"sqla+postgresql://{self.username}:{self.password}@{self.host}:{self.port}/{self.db_schema}"
+        # return str(url)
+        return url_broker
+    
     @property
     def full_url_sync(self) -> str:
         """ "

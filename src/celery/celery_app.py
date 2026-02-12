@@ -14,10 +14,11 @@ from src.orm.models import Certificate, Endpoint
 from src.package.db import certificate_create_or_select
 from src.extensions.getcert import get_cert
 from src.package.db import endpoint_get, endpoint_create, certificate_create_or_select, certificate_endpoint_ref_insert
+from src.settings.database import database_settings
 
 celery_app = Celery(
     "worker",
-    broker="sqla+postgresql://sslchecker:sslchecker@postgres:5432/sslchecker"
+    broker=database_settings.full_url_broker
 )
 
 celery_app.conf.update(
