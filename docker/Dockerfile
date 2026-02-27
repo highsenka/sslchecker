@@ -1,6 +1,5 @@
 # For more information, please refer to https://aka.ms/vscode-docker-python
 FROM python:3.14-slim
-# FROM docker-hosted.artifactory.tcsbank.ru/python/3.14/base:latest
 
 EXPOSE 8080
 
