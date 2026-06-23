@@ -134,3 +134,16 @@ CREATE TABLE IF NOT EXISTS sslchecker.token_endpoint_ref
 );
 
 ALTER TABLE IF EXISTS sslchecker.token_endpoint_ref OWNER to sslchecker;
+
+CREATE TABLE IF NOT EXISTS sslchecker.crl_data
+(
+    id character varying COLLATE pg_catalog."default" NOT NULL DEFAULT uuid_generate_v1(),
+    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    updated_at timestamp with time zone NOT NULL DEFAULT now(),
+    crl character varying COLLATE pg_catalog."default" NOT NULL,
+    data jsonb NOT NULL,
+    CONSTRAINT crl_cache_pkey PRIMARY KEY (id),
+    CONSTRAINT uq__crl UNIQUE (crl)
+)
+
+ALTER TABLE IF EXISTS sslchecker.crl_data OWNER to sslchecker;

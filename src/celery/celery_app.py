@@ -53,7 +53,7 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
 
     sender.add_periodic_task(1800, kombu_message_clear.s())
 
-    # sender.add_periodic_task(60.0, certificate_expired.s())
+    sender.add_periodic_task(60.0, certificate_expired.s())
 
     sender.add_periodic_task(
         10.0,
@@ -140,7 +140,7 @@ def process_list() -> None:
 @celery_app.task
 def kombu_message_clear() -> None:
     with db_context() as session:
-        session.execute(text("delete from sslchecker.kombu_message where timestamp < NOW() - INTERVAL '2 hour'"))
+        session.execute(text("delete from sslchecker.kombu_message where timestamp > NOW() - INTERVAL '1 hour'"))
         session.commit()
         print("Clear kombu message")
 

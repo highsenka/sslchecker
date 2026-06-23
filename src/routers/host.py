@@ -8,7 +8,14 @@ from src.orm.database import get_db
 from src.extensions.getcert import get_cert
 from src.orm.models import Certificate, Endpoint
 from src.package.schemas import EndpointItem
-from src.package.db import endpoint_get, endpoint_create, certificate_create_or_select, token_get, token_endpoint_ref_insert
+from src.package.db import (
+    endpoint_get, 
+    endpoint_create, 
+    certificate_create_or_select, 
+    token_get, 
+    token_endpoint_ref_insert,
+    endpoint_delete
+)
 from src.extensions.limiter import limiter
 
 
@@ -24,6 +31,7 @@ def host_get(
     port: int = 443,
 ): 
     cert = get_cert(host, port, 5)
+    return cert
     if cert:
         return cert
     return {"error": "couldn't retrive certificate"}
@@ -57,3 +65,22 @@ def host_add(
         return cert_in_db
     else:
         raise HTTPException(status_code=400, detail=f"Error retrieving certificate from {host}:{port}")
+
+@router.delete("/delete")
+@limiter.limit("20/minute")
+def host_delete(
+    request: Request,
+    host: str,
+    port: int | None = 443,
+    token: Annotated[str, Query(description="Token for authentication", title="Token")] | None = None,
+    db: Session = Depends(get_db),
+):
+    token_info = token_get(db, token)
+    if not token_info:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    allowed_ports = [443, 8443]
+    if port not in allowed_ports:
+        raise HTTPException(status_code=400, detail=f"Port must be in {allowed_ports}")
+
+    endpoint_delete(db=db, host=host, port=port)

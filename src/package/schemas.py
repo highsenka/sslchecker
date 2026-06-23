@@ -1,6 +1,6 @@
 from datetime import date, datetime, time, timedelta
 from pydantic import BaseModel, Field
-from typing import Union, Literal, Annotated, Dict, Optional
+from typing import Union, Literal, Annotated, Dict, Optional, Any
 
 class EndpointItem(BaseModel):
     host: str
@@ -17,4 +17,9 @@ class TokenItem(BaseModel):
     telegram: Optional[str] = None
     time_channel: Optional[str] = None
     # active: bool = True
-    
+
+class CrlDataItem(BaseModel):
+    crl: str
+    data: list[dict] = []
+
+ 

@@ -121,3 +121,7 @@ class Token(BaseModel):
 class token_endpoint_ref(BaseModel):
     token_id = mapped_column(String, ForeignKey("token.id"), nullable=False)
     endpoint_id = mapped_column(String, ForeignKey("endpoint.id"), nullable=False)
+
+class crl_data(BaseModel):
+    crl = mapped_column(String, unique=True, nullable=False, doc="crl url")
+    data = mapped_column(JSONB, unique=False, nullable=True, doc="crl data")

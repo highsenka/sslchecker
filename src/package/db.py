@@ -1,11 +1,15 @@
+import re
+
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.postgresql import insert 
 from sqlalchemy import or_, and_
+from fastapi import HTTPException
 
-from src.orm.models import Endpoint, Certificate, certificate_endpoint_ref, Token, token_endpoint_ref
+from src.orm.models import Endpoint, Certificate, certificate_endpoint_ref, Token, token_endpoint_ref, crl_data
 from src.package import schemas
 from typing import Any
 from datetime import datetime
+
 
 def endpoint_create(db: Session, host: str, port: int = 443):
     record = schemas.EndpointItem(host=host, port=port)
@@ -62,3 +66,40 @@ def token_endpoint_ref_insert(db: Session, token_id: str, endpoint_id: str):
     on_conflict_stmt = insert_stmt.on_conflict_do_nothing()
     db.execute(on_conflict_stmt)
     db.commit()
+
+def endpoint_delete(db: Session, host: str, port: int = 443):
+    record_in_db = endpoint_get(db, host=host, port=port)
+    if not record_in_db:
+        raise HTTPException(status_code=400, detail=f"Error delete {record_in_db}. Record not exist.")
+    else:
+        db.delete(record_in_db)
+        db.commit()
+        return {"status": "ok", "target": f"{record_in_db}", "action": "delete"}
+
+# def crl_item_select(db: Session, crlUrl: str):
+#     return db.query(crl_data).filter(and_(Endpoint.host == host, Endpoint.port == port)).first()
+
+def crl_item_create_or_update(db: Session, crlUrl: str, crlData: list = []):
+    insert_stmt = insert(crl_data).values({"crl": crlUrl, "data": crlData})
+    on_conflict_stmt = insert_stmt.on_conflict_do_update(constraint="uq__crl", set_=dict(data=crlData))
+    db.execute(on_conflict_stmt)
+    db.commit()
+
+def crl_item_get(db: Session, crlUrl: str):
+    return db.query(crl_data).filter(crl_data.crl == crlUrl).first()
+
+def crl_items_crl_list(db: Session):
+    crl_items = db.query(crl_data.crl)
+    return {"result": "success", "data": {x[0] for x in crl_items.all()}}
+
+def certificate_items_crl_list(db: Session):
+    crl_items = db.query(Certificate.extentions['crlDistributionPoints'])
+    crl_uris = [item[0] for item in crl_items.all()]
+    crls = []
+    for crl in crl_uris:
+        if isinstance(crl, str):
+            c = re.sub('(URI:)?', '', crl.replace(' ','').split("\n")[1])
+            # print (c)
+        # c = (crl.split("\n")[1]).replace(" ","")
+            crls.append(c)
+    return list(set(crls))
