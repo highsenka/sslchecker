@@ -1,5 +1,7 @@
 import re
 
+from typing import Any
+from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.postgresql import insert 
 from sqlalchemy import or_, and_
@@ -7,8 +9,6 @@ from fastapi import HTTPException
 
 from src.orm.models import Endpoint, Certificate, certificate_endpoint_ref, Token, token_endpoint_ref, crl_data
 from src.package import schemas
-from typing import Any
-from datetime import datetime
 
 
 def endpoint_create(db: Session, host: str, port: int = 443):
