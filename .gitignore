@@ -1,0 +1,25 @@
+# System Files
+.DS_Store/
+.DS_Store
+/venv/
+logs/
+
+# Config Files
+.env
+
+##########
+# Python #
+##########
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+/ui/browser/*.*
+/ui/browser/*/*
+/docker/Dockerfile
+
+/grafana-data/
+/pg_data/
+/pgbouncer/
