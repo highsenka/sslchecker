@@ -102,4 +102,5 @@ def certificate_items_crl_list(db: Session):
             # print (c)
         # c = (crl.split("\n")[1]).replace(" ","")
             crls.append(c)
-    return list(set(crls))
+    res = {item: crls.count(item) for item in set(crls)}
+    return res

@@ -2,6 +2,7 @@ from celery import Celery
 from celery.schedules import crontab
 
 import time
+import sqlalchemy as sql
 
 from datetime import datetime, timezone, timedelta
 
@@ -16,6 +17,8 @@ from src.extensions.getcert import get_cert
 from src.package.db import endpoint_get, endpoint_create, certificate_create_or_select, certificate_endpoint_ref_insert
 from src.settings.database import database_settings
 from src.extensions.crl import crl_download
+import sqlalchemy as sql
+
 
 celery_app = Celery(
     "worker",
@@ -54,20 +57,24 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
 
     sender.add_periodic_task(1800, kombu_message_clear.s())
     sender.add_periodic_task(60.0, certificate_expired.s())
-    sender.add_periodic_task(600.0, process_list.s())
+    sender.add_periodic_task(1800.0, process_list.s())
     sender.add_periodic_task(1200.0, download_crl_and_check_certificates.s())
-
+    sender.add_periodic_task(60.0, certificate_set_revoked.s())
 
 @celery_app.task
 def test(arg):
     print(arg)
 
-celery_app.task
+@celery_app.task
 def download_crl_and_check_certificates():
     with db_context() as session:
         crl_download(db=session)
-        query = text(f"update sslchecker.certificate set state = 'REVOKED' where id in ( SELECT id FROM ( select c.id, ('0x' || c.serial_number)::numeric as sn1 from sslchecker.certificate c where state not in ('EXPIRED','REVOKED')) t1 JOIN ( SELECT crl_data.crl, (item.value ->> 'sn'::text)::numeric AS sn2, item.value -> 'date'::text AS revoked_date FROM crl_data CROSS JOIN LATERAL jsonb_array_elements(crl_data.data) item(value)) t2 ON t2.sn2 = t1.sn1 )")
-        res = session.execute(query).all()
+
+@celery_app.task
+def certificate_set_revoked():
+    with db_context() as session:
+        query = sql.text(f"update sslchecker.certificate set state = 'REVOKED' where id in ( SELECT id FROM ( select c.id, ('0x' || c.serial_number)::numeric as sn1 from sslchecker.certificate c where state not in ('EXPIRED','REVOKED')) t1 JOIN ( SELECT crl_data.crl, (item.value ->> 'sn'::text)::numeric AS sn2, item.value -> 'date'::text AS revoked_date FROM crl_data CROSS JOIN LATERAL jsonb_array_elements(crl_data.data) item(value)) t2 ON t2.sn2 = t1.sn1 )")
+        session.execute(query)
 
 @celery_app.task
 def certificate_expired():

@@ -13,9 +13,9 @@ def crl_download(
             crl_object = fetch_and_parse_crl(crl_url)
             
             # Print CRL metadata
-            print(f"Issuer: {crl_object.issuer}")
-            print(f"Last Update: {crl_object.last_update_utc}")
-            print(f"Next Update: {crl_object.next_update_utc}")
+            #print(f"Issuer: {crl_object.issuer}")
+            #print(f"Last Update: {crl_object.last_update_utc}")
+            #   print(f"Next Update: {crl_object.next_update_utc}")
             
             crl_list = []
             for obj in crl_object:
